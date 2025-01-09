@@ -1,0 +1,5 @@
+gcc -framework OpenGL -framework GLUT $1 my-turtle.o   # for Mac
+#gcc $1 my-turtle.o -lglut -lm -lGLU -lGL -lalut -lopenal    # for Ubuntu
+
+./a.out
+\rm a.out *~ >& /dev/null
