@@ -32,6 +32,7 @@ void init() {
 
 // 大きい方を返す関数
 
+
 void draw_screen() {
   double scr_x, scr_y, edge_size;
   int x, y;
