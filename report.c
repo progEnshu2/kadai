@@ -151,6 +151,13 @@ void move_ball() {
   if (ball_y == SCR_HEIGHT - 1) game_over_flg = 1;
 }
 
+void move_hero() {
+  if (inkey(' ') == 1) {
+    // スペースキーが押されたときの処理をここに追加
+    // 例: ボールをリセットするなどの処理
+  }
+}
+
 // サイズ edge_size の塗りつぶした四角（■）を，座標 (x, y) に表示．
 // 色は「r，g，b」で指定する．
 void draw_square(int x, int y, int edge_size, int r, int g, int b) {
