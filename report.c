@@ -8,13 +8,18 @@
 double translate_x(int x);
 double translate_y(int y);
 int maxof(int x, int y);
+#define SCR_WIDTH (100)
+#define SCR_HEIGHT (60)
+unsigned char screen[SCR_WIDTH][SCR_HEIGHT];
 
 // スクリーンのサイズ
 #define EDGE (600)
 #define MAX_WALLS (10)  // 最大壁数
-
-int score;            // スコア
-int game_over_flg;    // ゲームオーバーか？
+int charachter_x = SCR_WIDTH / 2;
+int charachter_y = SCR_HEIGHT - 1;
+int score;          // スコア
+int game_over_flg;  // ゲームオーバーか？
+int count = 0;
 char score_str[100];  // 画面表示用の作業領域
 
 typedef struct {
@@ -27,9 +32,6 @@ Wall walls[MAX_WALLS];
 
 // 仮想画面の横幅（WIDTH）と高さ（HEIGHT），
 // および仮想画面を表す二次元配列 screen．
-#define SCR_WIDTH (40)
-#define SCR_HEIGHT (60)
-unsigned char screen[SCR_WIDTH][SCR_HEIGHT];
 
 // ラケット1および2の位置，ボールの位置，ボールの進行方向，
 // スコア（0点），ゲームオーバーではない，を変数に設定．
@@ -39,6 +41,18 @@ void init() {
   srand(time(NULL));
   for (int i = 0; i < MAX_WALLS; i++) {
     walls[i].active = 0;
+  }
+}
+
+void jump() {
+  if (count == 0) {
+    if (inkey('s') == 1 && charachter_y > 0) {
+      charachter_y -= 5;
+      count += 5;
+    }
+  } else if (count > 0) {
+    charachter_y += 1;
+    count -= 1;
   }
 }
 
@@ -71,17 +85,34 @@ void draw_virtual_screen() {
       }
     }
   }
+
+  for (int i = 0; i < 1; i++) {
+    screen[charachter_x][charachter_y] = 'o';
+  }
 }
 
 void move_walls() {
-  for (int i = 0; i < MAX_WALLS; i++) {
-    if (walls[i].active) {  // 壁がアクティブなら移動
-      walls[i].x += walls[i].vx;
-      walls[i].y += walls[i].vy;
-
-      // 壁が画面左壁に衝突した場合、壁を消去
-      if (walls[i].x <= 0) {
-        walls[i].active = 0;  // 壁を非アクティブにする（消去）
+  if (game_over_flg == 1) {
+    pencolor(1.0, 1.0, 1.0);
+    setpos(translate_x(SCR_WIDTH / 2 - 5), translate_y(SCR_HEIGHT / 2));
+    put_text("GAME OVER", 'h', 18);
+    setpos(translate_x(SCR_WIDTH / 2 - 8), translate_y(SCR_HEIGHT / 2 + 2));
+    put_text("Press [r] to play again", 'h', 18);
+    if (inkey('r') == 1) init();
+  }
+  if (game_over_flg == 0) {
+    for (int i = 0; i < MAX_WALLS; i++) {
+      if (walls[i].active) {  // 壁がアクティブなら移動
+        walls[i].x += walls[i].vx;
+        walls[i].y += walls[i].vy;
+        if ((walls[i].x == charachter_x) &&
+            (walls[i].y == charachter_y || walls[i].y + 1 == charachter_y)) {
+          game_over_flg = 1;  // ゲームオーバー
+        }
+        // 壁が画面左壁に衝突した場合、壁を消去
+        if (walls[i].x <= 0) {
+          walls[i].active = 0;  // 壁を非アクティブにする（消去）
+        }
       }
     }
   }
@@ -130,6 +161,8 @@ void draw_screen() {
         case 'w':
           draw_square(scr_x, scr_y, edge_size, 0, 0, 1);
           break;
+        case 'o':
+          draw_square(scr_x, scr_y, edge_size, 1, 0, 0);
       }
     }
   }
@@ -139,6 +172,7 @@ void draw_screen() {
   // 格納される．文字列 score_str は，my_turtle.o の
   // put_text 関数で出力する．
   pencolor(1.0, 1.0, 1.0);
+  setpos(translate_x(0), translate_y(2));
   /* 文字列「score_str」の生成処理 */
   put_text(score_str, 'h', 18);
   sprintf(score_str, "SCORE: %10d", score);
@@ -197,15 +231,12 @@ void disp_body(void) {
 
   if (game_over_flg == 0) {
     // ゲームオーバーでなかったら．．．
+    jump();
     score += 1;  // スコアを10点増やす．
     usleep(0.02 * 1000 *
            1000);  // 時間調整（待ち時間を減らすと，より高速になる）
   } else {
     // ゲームオーバーの処理．
-    pencolor(1.0, 1.0, 1.0);
-    put_text("GAME OVER", 'h', 18);
-    put_text("Press [r] to play again", 'h', 18);
-    if (inkey('r') == 1) init();
   }
 
   draw_screen();
