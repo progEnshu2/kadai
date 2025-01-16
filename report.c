@@ -16,18 +16,20 @@ double translate_x(int x);
 double translate_y(int y);
 int maxof(int x, int y);
 int charachter_x = SCR_WIDTH / 2;
-int charachter_y = SCR_HEIGHT - 1;
+int charachter_y = SCR_HEIGHT - 2;
 int score;          // スコア
 int game_over_flg;  // ゲームオーバーか？
 int count = 0;
 char score_str[100];  // 画面表示用の作業領域
 int highscore = 0;
 char highscore_str[100];
+int speedup = 0;
 
 typedef struct {
-  int x, y;    // 壁の位置
-  int vx, vy;  // 壁の進行方向
-  int active;  // 壁が動いているかどうか
+  int x, y;           // 壁の位置
+  int vx, vy;         // 壁の進行方向
+  int active;         // 壁が動いているかどうか
+  int width, height;  // 壁の幅
 } Wall;
 
 Wall walls[MAX_WALLS];
@@ -39,10 +41,13 @@ Wall walls[MAX_WALLS];
 // スコア（0点），ゲームオーバーではない，を変数に設定．
 void init() {
   score = 0;
+  speedup = 0;
   game_over_flg = 0;
   srand(time(NULL));
   for (int i = 0; i < MAX_WALLS; i++) {
     walls[i].active = 0;
+    walls[i].width = 2;
+    walls[i].height = 3;
   }
 }
 
@@ -50,10 +55,13 @@ void jump() {
   if (count == 0) {
     if (inkey(' ') == 1 && charachter_y > 0) {
       charachter_y -= 5;
+      if (charachter_y < 0) charachter_y = 0;  // 範囲を超えないよう制約
       count += 5;
     }
   } else if (count > 0) {
     charachter_y += 1;
+    if (charachter_y > SCR_HEIGHT - 2)
+      charachter_y = SCR_HEIGHT - 2;  // 下端を超えない
     count -= 1;
   }
 }
@@ -79,17 +87,23 @@ void draw_virtual_screen() {
 
   // 壁（'w'）を縦長の長方形として配置
   for (int i = 0; i < MAX_WALLS; i++) {
-    if (walls[i].active) {  // 壁がアクティブならば描画
-      // 壁を描画
-      if (walls[i].y < SCR_HEIGHT - 1) {
-        screen[walls[i].x][walls[i].y] = 'w';      // 上部の部分
-        screen[walls[i].x][walls[i].y + 1] = 'w';  // 下部の部分
+    if (walls[i].active) {                          // 壁がアクティブならば描画
+      for (int j = 0; j < walls[i].height; j++) {   // 壁の高さ分繰り返し
+        for (int k = 0; k < walls[i].width; k++) {  // 壁の幅分繰り返し
+          if (walls[i].y + j < SCR_HEIGHT) {
+            screen[walls[i].x + k][walls[i].y + j] = 'w';  // 壁を描画
+          }
+        }
       }
     }
   }
 
-  for (int i = 0; i < 1; i++) {
-    screen[charachter_x][charachter_y] = 'o';
+  for (int j = 0; j < 2; j++) {
+    for (int k = 0; k < 2; k++) {
+      if (charachter_x + k < SCR_WIDTH && charachter_y + j < SCR_HEIGHT) {
+        screen[charachter_x + k][charachter_y + j] = 'o';
+      }
+    }
   }
 }
 
@@ -102,19 +116,28 @@ void move_walls() {
     put_text("Press [r] to play again", 'h', 18);
     if (inkey('r') == 1) init();
   }
+
   if (game_over_flg == 0) {
     for (int i = 0; i < MAX_WALLS; i++) {
       if (walls[i].active) {  // 壁がアクティブなら移動
         walls[i].x += walls[i].vx;
         walls[i].y += walls[i].vy;
-        if ((walls[i].x == charachter_x) &&
-            (walls[i].y == charachter_y || walls[i].y - 1 == charachter_y ||
-             walls[i].y + 1 == charachter_y)) {
-          game_over_flg = 1;  // ゲームオーバー
+
+        // キャラクター（2x2）と壁の衝突判定
+        for (int j = 0; j < 2; j++) {
+          for (int k = 0; k < 2; k++) {
+            if ((charachter_x + k >= walls[i].x &&
+                 charachter_x + k < walls[i].x + walls[i].width) &&
+                (charachter_y + j >= walls[i].y &&
+                 charachter_y + j < walls[i].y + walls[i].height)) {
+              game_over_flg = 1;  // ゲームオーバー
+            }
+          }
         }
-        // 壁が画面左壁に衝突した場合、壁を消去
-        if (walls[i].x <= 0) {
-          walls[i].active = 0;  // 壁を非アクティブにする（消去）
+
+        // 壁が画面左端を超えたら消去
+        if (walls[i].x + walls[i].width <= 0) {
+          walls[i].active = 0;  // 壁を非アクティブにする
         }
       }
     }
@@ -162,10 +185,10 @@ void draw_screen() {
           draw_square(scr_x, scr_y, edge_size, 1, 1, 1);
           break;
         case 'w':
-          draw_square(scr_x, scr_y, edge_size, 0, 0, 1);
+          draw_square(scr_x, scr_y, edge_size, 1, 1, 0);
           break;
         case 'o':
-          draw_square(scr_x, scr_y, edge_size, 1, 0, 0);
+          draw_square(scr_x, scr_y, edge_size, 0, 1, 1);
       }
     }
   }
@@ -228,6 +251,8 @@ void disp_body(void) {
         walls[i].vx = -1;
         walls[i].vy = 0;      // 垂直方向には移動しない
         walls[i].active = 1;  // 壁をアクティブに設定
+        walls[i].width = 2;
+        walls[i].height = 3;  // 幅を6に設定
         break;                // 最初に空いている壁位置に追加
       }
     }
@@ -239,9 +264,12 @@ void disp_body(void) {
     // ゲームオーバーでなかったら．．．
     jump();
     score += 1;  // スコアを10点増やす．
+    if (score % 10 == 0) {
+      speedup += 100;
+    }
     highscore = maxof(highscore, score);
-    usleep(0.02 * 1000 *
-           1000);  // 時間調整（待ち時間を減らすと，より高速になる）
+    usleep(0.02 * 800 * 1000 -
+           speedup);  // 時間調整（待ち時間を減らすと，より高速になる）
   } else {
     // ゲームオーバーの処理．
   }
