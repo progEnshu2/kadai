@@ -14,6 +14,8 @@ unsigned char screen[SCR_WIDTH][SCR_HEIGHT];
 
 double translate_x(int x);
 double translate_y(int y);
+double cloud_x = SCR_WIDTH - 15;   // 右端からスタート
+double cloud_y = SCR_HEIGHT - 35;  // 初期Y位置
 int maxof(int x, int y);
 int charachter_x = SCR_WIDTH / 2;
 int charachter_y = SCR_HEIGHT - 2;
@@ -43,6 +45,7 @@ void init() {
   score = 0;
   speedup = 0;
   game_over_flg = 0;
+
   srand(time(NULL));
   for (int i = 0; i < MAX_WALLS; i++) {
     walls[i].active = 0;
@@ -105,6 +108,16 @@ void draw_virtual_screen() {
       }
     }
   }
+  screen[(int)cloud_x][(int)cloud_y] = '*';  // 雲の位置に'*'を配置
+}
+
+void move_cloud() {
+  cloud_x -= 0.5;  // 雲を左に動かす（少しずつ移動）
+
+  // 雲が画面の左端を超えた場合、右端に戻す
+  if (cloud_x < 0) {
+    cloud_x = SCR_WIDTH - 2;  // 右端に戻す
+  }
 }
 
 void move_walls() {
@@ -163,6 +176,30 @@ void draw_square(int x, int y, int edge_size, int r, int g, int b) {
   end_fill();
 }
 
+void rowof_circles(int x, int y, double r) {
+  setpos(x, y);   // 描画開始位置
+  circle(r * 1);  // 半径 r の円を描画
+}
+
+void draw_cloud(int x, int y, int r, int g, int b) {
+  pencolor((double)r, (double)g, (double)b);
+  fillcolor((double)r, (double)g, (double)b);
+  penup();
+  set_dir(0);
+  pendown();
+  begin_fill();
+  int rad = 10;
+  int w;
+  // 雲の形状を作るために円を並べて描画
+  for (w = x; w <= x + rad * 5; w += 2 * rad) {
+    rowof_circles(w, y, rad);                  // 通常の円を描画
+    rowof_circles(w + rad, y + rad / 2, rad);  // 少しずらして円を描画
+    rowof_circles(w + rad, y - rad / 2, rad);  // 少しずらして円を描画
+  }
+  rowof_circles(x + rad * 6, y, rad);
+  end_fill();
+}
+
 void draw_screen() {
   double scr_x, scr_y, edge_size;
   int x, y;
@@ -178,9 +215,6 @@ void draw_screen() {
       edge_size = EDGE / maxof(SCR_WIDTH, SCR_HEIGHT);
 
       switch (screen[x][y]) {
-        case ' ':
-          draw_square(scr_x, scr_y, edge_size, 0, 0, 0);
-          break;
         case '#':
           draw_square(scr_x, scr_y, edge_size, 1, 1, 1);
           break;
@@ -189,6 +223,10 @@ void draw_screen() {
           break;
         case 'o':
           draw_square(scr_x, scr_y, edge_size, 0, 1, 1);
+          break;
+        case '*':
+          draw_cloud(scr_x, scr_y, 1, 1, 1);
+          break;  // 雲を描画
       }
     }
   }
@@ -263,6 +301,7 @@ void disp_body(void) {
   if (game_over_flg == 0) {
     // ゲームオーバーでなかったら．．．
     jump();
+    move_cloud();
     score += 1;  // スコアを10点増やす．
     if (score % 10 == 0) {
       speedup += 100;
@@ -273,7 +312,6 @@ void disp_body(void) {
   } else {
     // ゲームオーバーの処理．
   }
-
   draw_screen();
   move_walls();
   usleep(0.02 * 1000 * 1000);  // 時間調整
@@ -282,5 +320,5 @@ void disp_body(void) {
 // main関数
 int main(int argc, char *argv[]) {
   init();
-  runGL(EDGE, 2.0, "Squash GAME", 1, &argc, argv);
+  runGL(EDGE, 2.0, "Jumping GAME", 1, &argc, argv);
 }
