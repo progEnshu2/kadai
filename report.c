@@ -46,7 +46,7 @@ void init() {
 
 void jump() {
   if (count == 0) {
-    if (inkey('s') == 1 && charachter_y > 0) {
+    if (inkey(' ') == 1 && charachter_y > 0) {
       charachter_y -= 5;
       count += 5;
     }
