@@ -4,10 +4,6 @@
 #include <unistd.h>
 
 #include "my-turtle.h"
-
-double translate_x(int x);
-double translate_y(int y);
-int maxof(int x, int y);
 #define SCR_WIDTH (100)
 #define SCR_HEIGHT (60)
 unsigned char screen[SCR_WIDTH][SCR_HEIGHT];
@@ -15,12 +11,18 @@ unsigned char screen[SCR_WIDTH][SCR_HEIGHT];
 // スクリーンのサイズ
 #define EDGE (600)
 #define MAX_WALLS (10)  // 最大壁数
+
+double translate_x(int x);
+double translate_y(int y);
+int maxof(int x, int y);
 int charachter_x = SCR_WIDTH / 2;
 int charachter_y = SCR_HEIGHT - 1;
 int score;          // スコア
 int game_over_flg;  // ゲームオーバーか？
 int count = 0;
 char score_str[100];  // 画面表示用の作業領域
+int highscore = 0;
+char highscore_str[100];
 
 typedef struct {
   int x, y;    // 壁の位置
@@ -106,7 +108,8 @@ void move_walls() {
         walls[i].x += walls[i].vx;
         walls[i].y += walls[i].vy;
         if ((walls[i].x == charachter_x) &&
-            (walls[i].y == charachter_y || walls[i].y + 1 == charachter_y)) {
+            (walls[i].y == charachter_y || walls[i].y - 1 == charachter_y ||
+             walls[i].y + 1 == charachter_y)) {
           game_over_flg = 1;  // ゲームオーバー
         }
         // 壁が画面左壁に衝突した場合、壁を消去
@@ -172,6 +175,9 @@ void draw_screen() {
   // 格納される．文字列 score_str は，my_turtle.o の
   // put_text 関数で出力する．
   pencolor(1.0, 1.0, 1.0);
+  setpos(translate_x(60), translate_y(2));
+  put_text(highscore_str, 'h', 18);
+  sprintf(highscore_str, "HIGHSCORE: %10d", highscore);
   setpos(translate_x(0), translate_y(2));
   /* 文字列「score_str」の生成処理 */
   put_text(score_str, 'h', 18);
@@ -233,6 +239,7 @@ void disp_body(void) {
     // ゲームオーバーでなかったら．．．
     jump();
     score += 1;  // スコアを10点増やす．
+    highscore = maxof(highscore, score);
     usleep(0.02 * 1000 *
            1000);  // 時間調整（待ち時間を減らすと，より高速になる）
   } else {
